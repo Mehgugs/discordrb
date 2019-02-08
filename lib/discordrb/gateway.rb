@@ -150,6 +150,7 @@ module Discordrb
       @shard_key = shard_key
 
       @getc_mutex = Mutex.new
+      @sock_mutex = Mutex.new
 
       # Whether the connection to the gateway has succeeded yet
       @ws_success = false
@@ -158,6 +159,20 @@ module Discordrb
 
       @compress_mode = compress_mode
     end
+
+    def aquire_socket()
+      @sock_mutex.synchronize {
+        @raw_socket
+      }
+    end
+    alias_method :socket, :aquire_socket
+
+    def set_socket(new_value)
+      @sock_mutex.synchronize{
+        @raw_socket = new_value
+      }
+    end
+    alias_method :socket=, :set_socket
 
     # Connect to the gateway server in a separate thread
     def run_async
@@ -554,7 +569,7 @@ module Discordrb
       @zlib_reader = Zlib::Inflate.new
 
       # Connect to the obtained URI with a socket
-      @socket = obtain_socket(gateway_uri)
+      socket = obtain_socket(gateway_uri)
       LOGGER.debug('Obtained socket')
 
       # Initialise some properties
@@ -572,14 +587,14 @@ module Discordrb
 
     def websocket_loop
       # Send the handshake data that we have so far
-      @socket.write(@handshake.to_s)
+      socket.write(@handshake.to_s)
 
       # Create a frame to handle received data
       frame = ::WebSocket::Frame::Incoming::Client.new
 
       until @closed
         begin
-          unless @socket
+          unless socket
             LOGGER.warn('Socket is nil in websocket_loop! Reconnecting')
             handle_internal_close('Socket is nil in websocket_loop')
           end
@@ -588,7 +603,7 @@ module Discordrb
 
           # Get some data from the socket, synchronised so the socket can't be closed during this
           # 24: remove locking
-          @getc_mutex.synchronize { recv_data = @socket.getc }
+          getc_mutex.synchronize{ recv_data = socket.getc }
 
           # Check if we actually got data
           unless recv_data
@@ -799,7 +814,7 @@ module Discordrb
 
       # Try to send it
       begin
-        @socket.write frame.to_s
+        socket.write frame.to_s
       rescue StandardError => e
         # There has been an error!
         @pipe_broken = true
@@ -828,8 +843,8 @@ module Discordrb
       end
 
       # Close the socket if possible
-      @socket&.close
-      @socket = nil
+      socket&.close
+      socket = nil
 
       # Make sure we do necessary things as soon as we're closed
       handle_close(nil)
