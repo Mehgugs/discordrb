@@ -160,17 +160,17 @@ module Discordrb
       @compress_mode = compress_mode
     end
 
-    def socket 
-	  @sock_mutex.synchronize {
+    def socket
+	    @sock_mutex.synchronize {
         @socket
       }
-	end
+	  end
 
     def socket=(new_value)
-	  @sock_mutex.synchronize{
+	    @sock_mutex.synchronize{
         @socket = new_value
       }
-	end
+	  end
 
     # Connect to the gateway server in a separate thread
     def run_async
@@ -500,7 +500,7 @@ module Discordrb
 
     # Create and connect a socket using a URI
     def obtain_socket(uri)
-      socket = TCPSocket.new(uri.host, uri.port || socket_port(uri))
+      new_socket = TCPSocket.new(uri.host, uri.port || socket_port(uri))
 
       if secure_uri?(uri)
         ctx = OpenSSL::SSL::SSLContext.new
@@ -516,11 +516,11 @@ module Discordrb
           ctx.set_params ssl_version: :TLSv1_2
         end
 
-        socket = OpenSSL::SSL::SSLSocket.new(socket, ctx)
-        socket.connect
+        new_socket = OpenSSL::SSL::SSLSocket.new(new_socket, ctx)
+        new_socket.connect
       end
 
-      socket
+      new_socket
     end
 
     # Whether the URI is secure (connection should be encrypted)
