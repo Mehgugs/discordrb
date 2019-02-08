@@ -160,19 +160,17 @@ module Discordrb
       @compress_mode = compress_mode
     end
 
-    def aquire_socket()
-      @sock_mutex.synchronize {
-        @raw_socket
+    def socket 
+	  @sock_mutex.synchronize {
+        @socket
       }
-    end
-    alias_method :socket, :aquire_socket
+	end
 
-    def set_socket(new_value)
-      @sock_mutex.synchronize{
-        @raw_socket = new_value
+    def socket=(new_value)
+	  @sock_mutex.synchronize{
+        @socket = new_value
       }
-    end
-    alias_method :socket=, :set_socket
+	end
 
     # Connect to the gateway server in a separate thread
     def run_async
